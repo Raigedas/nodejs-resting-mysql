@@ -58,6 +58,6 @@ exports.login = function(req, res) {
             util.sendError(res, err);
             return;
         }
-        res.send(buildJwt(result));
+        res.send(buildJwt(common.convertObjectStyleToJs(result)));
     });
 }
