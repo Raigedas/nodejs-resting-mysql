@@ -19,9 +19,11 @@ exports.wrapCurlyIfNeeded = function(value) {
 
 exports.wrapToArray = function(value) {
     var r = value;
-    if (value && !Array.isArray(value)) {
+    if (!Array.isArray(value)) {
         r = [];
-        r.push(value);
+        if (value) {
+            r.push(value);
+        }
     }
     return r;
 }
