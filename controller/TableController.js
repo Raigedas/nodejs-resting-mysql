@@ -18,7 +18,7 @@ exports.select = function(req, res) {
 
     where = util.wrapToArray(where);
 
-    config.preInterceptors.forEach(e => {
+    config.interceptors.preSelect.forEach(e => {
         if (!e(req, tableName, where)) {
             res.status(500).send('not authorized');
             return;
@@ -26,7 +26,7 @@ exports.select = function(req, res) {
     });
     
 
-    // console.log('select where=' + JSON.stringify(where));
+    console.log('select from ' + tableName + ' where=' + JSON.stringify(where));
     const whereString = where ? 'WHERE ' + conditionBuilder.build(where) : '';
 
     return db.promisedQuery(`

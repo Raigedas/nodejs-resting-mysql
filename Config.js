@@ -8,8 +8,8 @@ config.propertyNameConverter = {
     toJs: stringUtils.convertUpperToCamelCaseStyle,
     toDb: stringUtils.convertCamelToUpperCaseStyle,
 };
-config.preInterceptors = [];
-config.postInterceptors = [];
-
+config.interceptors = {};
+config.interceptors.preSelect = [];
+config.interceptors.postSelect = [];
 
 module.exports = config;

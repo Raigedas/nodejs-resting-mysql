@@ -6,7 +6,7 @@ restingMysql.config.dbConnection = require('./DbConnection');
 restingMysql.config.login = require('./Login');
 
 
-restingMysql.config.preInterceptors.push((req, tableName, where) => {
+restingMysql.config.interceptors.preSelect.push((req, tableName, where) => {
     where.push({$or: [{insertedBy: null}, {insertedBy: req.query.user.id}]});
     return true;
 });
