@@ -24,9 +24,10 @@ exports.select = function(req, res) {
             return;
         }
     });
-    
 
-    console.log('select from ' + tableName + ' where=' + JSON.stringify(where));
+    console.log('select from ' + tableName + ' where=' + JSON.stringify(where) 
+            // + ' req.query=' + JSON.stringify(req.query)
+            );
     const whereString = where ? 'WHERE ' + conditionBuilder.build(where) : '';
 
     return db.promisedQuery(`
@@ -40,7 +41,7 @@ exports.select = function(req, res) {
             config.interceptors.postSelect.forEach(e => {
                 r = e(req, tableName, r);
             });
-            res.send(common.convertObjectsStyleToJs(rows));
+            res.send(common.convertObjectsStyleToJs(r));
         })
         .catch((err)=>{
             console.log(err);
