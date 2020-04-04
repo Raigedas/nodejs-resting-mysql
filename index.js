@@ -4,6 +4,11 @@ const express = require('express'),
     port = process.env.PORT || 3002;
 
 const config = require('./Config');
+const common = require('./Common');
+
+config.interceptors.postSelect.push((req, tableName, rows) => {
+    return common.convertObjectsStyleToJs(rows);
+})
 
 function start() {
     app.listen(port, '0.0.0.0');
@@ -21,7 +26,7 @@ function start() {
 
 exports.config = config;
 
-exports.common = require('./Common');
+exports.common = common;
 exports.util = require('./Util');
 
 exports.start = start;

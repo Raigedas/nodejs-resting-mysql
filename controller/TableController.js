@@ -36,6 +36,10 @@ exports.select = function(req, res) {
             `, 
             [])
         .then((rows)=>{
+            var r = rows;
+            config.interceptors.postSelect.forEach(e => {
+                r = e(req, tableName, r);
+            });
             res.send(common.convertObjectsStyleToJs(rows));
         })
         .catch((err)=>{
