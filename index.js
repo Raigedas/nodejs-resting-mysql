@@ -6,10 +6,6 @@ const express = require('express'),
 const config = require('./Config');
 const common = require('./Common');
 
-config.interceptors.postSelect.push((req, tableName, rows) => {
-    return common.convertObjectsStyleToJs(rows);
-})
-
 function start() {
     app.listen(port, '0.0.0.0');
 
