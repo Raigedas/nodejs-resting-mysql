@@ -74,5 +74,11 @@ describe('QueryBuilderWhere', () => {
             ]).replace(/ /g, ""),
             ' ((TITLE LIKE \'%th%\') AND ((INSERTED_BY IS NULL) OR (INSERTED_BY = 2)))'.replace(/ /g, "")
         );
+        assert.equal(
+            instance.build({
+                "cm.model":{$eq: {$column:"m.id"}}
+            }).replace(/ /g, ""),
+            ' (CM.MODEL = M.ID)'.replace(/ /g, "")
+        );
     });
 });

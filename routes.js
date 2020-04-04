@@ -31,8 +31,8 @@ module.exports = function(app) {
         ;
 
 
-    app.route('/query')
-        .get(queryController.query)
+    app.route('/query/select')
+        .get(queryController.selectRequest)
         ;
 
 };

@@ -5,48 +5,15 @@ const conditionBuilder = require('./QueryBuilderCondition');
 const common = require('../Common');
 const util = require('../Util');
 const db = require('./../Db');
+const queryController = require('./QueryController');
 
 
 exports.select = function(req, res) {
-    const tableName = req.params.tableName;
-    var where = req.query.where;
-    if (where) {
-        where = util.wrapCurlyIfNeeded(where);
-        // console.log('select where input =' + where);
-        where = JSON.parse(where);
-    }
+    const from = req.params.tableName;
+    const where = req.query.where;
+    const orderBy = req.query.orderBy;
 
-    where = util.wrapToArray(where);
-
-    config.interceptors.preSelect.forEach(e => {
-        if (!e(req, tableName, where)) {
-            res.status(500).send('not authorized');
-            return;
-        }
-    });
-
-    console.log('select from ' + tableName + ' where=' + JSON.stringify(where) 
-            // + ' req.query=' + JSON.stringify(req.query)
-            );
-    const whereString = where ? 'WHERE ' + conditionBuilder.build(where) : '';
-
-    return db.promisedQuery(`
-            SELECT *
-            FROM ${config.propertyNameConverter.toDb(tableName)}
-            ${whereString}
-            `, 
-            [])
-        .then((rows)=>{
-            var r = rows;
-            config.interceptors.postSelect.forEach(e => {
-                r = e(req, tableName, r);
-            });
-            res.send(common.convertObjectsStyleToJs(r));
-        })
-        .catch((err)=>{
-            console.log(err);
-            res.status(500).send(err);
-        });
+    return queryController.querySelect(req, res, null, null, from, null, where, orderBy);
 };
 
 exports.insert = function(req, res) {

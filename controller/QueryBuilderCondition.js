@@ -6,7 +6,7 @@ const config = require('./../Config');
 
 function isBinaryLogicalOperator(value) {
     value = value.toUpperCase();
-    return value == 'AND' || value == 'OR' || 'XOR';
+    return value == 'AND' || value == 'OR' || value == 'XOR';
 }
 
 function formatOperator(value, operand0, operand1) {
@@ -20,6 +20,7 @@ function formatOperator(value, operand0, operand1) {
         case 'gte': return '>=';
         case 'ne': return isNullOperand ? 'IS NOT' : '=';
         case 'like': return value.toUpperCase();
+        case 'column': return '';
         default: throw new Error('unknow operator ' + value);
     }
 }
@@ -39,6 +40,7 @@ function formatPropertyValue(value) {
 
 function buildObject(buildContext, currentObject, logicalOperator) {
     var propertys = Object.getOwnPropertyNames(currentObject);
+    // console.log('buildObject ' + JSON.stringify(currentObject) + ' propertys=' + propertys);
     return buildPropertys(buildContext, currentObject, logicalOperator, propertys);
 }
 
@@ -81,15 +83,18 @@ function buildArray(buildContext, currentObject, logicalOperator) {
 function buildProperty(buildContext, currentObject, propertyName, propertyValue) {
     // console.log('buildProperty object=' + JSON.stringify(currentObject)+' properName='+propertyName+' propertyValue='+JSON.stringify(propertyValue));
     if (propertyName.startsWith('$')) {
-        var logicalOperator = propertyName.substring(1).toUpperCase();
-        if (isBinaryLogicalOperator(logicalOperator)) {
-            if (Array.isArray(propertyValue)) {
-                return buildArray(buildContext, propertyValue, logicalOperator);
+        var operator = propertyName.substring(1).toUpperCase();
+        if (isBinaryLogicalOperator(operator)) {
+            if (Array.isArray(propertyValue) && (typeof propertyValue !== 'string')) {
+                return buildArray(buildContext, propertyValue, operator);
             } else {
-                return buildObject(buildContext, propertyValue, logicalOperator);
+                return buildObject(buildContext, propertyValue, operator);
             }
         } else {
-            return '(' + logicalOperator + ' ' + buildForObject(buildContext, propertyValue) + ')';
+            if (operator === 'COLUMN') {
+                return config.propertyNameConverter.toDb(propertyValue);
+            }
+            return '(' + operator + ' ' + buildObject(buildContext, propertyValue) + ')';
         }
     } else {
         var operator = formatOperator('eq', propertyName, propertyValue);
@@ -109,10 +114,12 @@ function buildOperatorAndOperand(buildContext, operand0, currentObject) {
     var propertyName = Object.getOwnPropertyNames(currentObject)[0];
     var propertyValue = currentObject[propertyName];
     var operator = propertyName.substring(1).toUpperCase();
-    return formatOperator(operator, operand0, propertyValue) + ' ' + formatPropertyValue(propertyValue);
+    return formatOperator(operator, operand0, propertyValue) + ' ' 
+            + (typeof propertyValue === 'object' ? buildObject(buildContext, propertyValue) : formatPropertyValue(propertyValue));
 }
 
 exports.build = function(where) {
     var buildContext = {where, parameterIndex: 0};
+    // console.log('build cond ' + JSON.stringify(where));
     return Array.isArray(where) ? buildArray(buildContext, where) : buildObject(buildContext, where);
 }
