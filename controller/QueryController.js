@@ -22,31 +22,27 @@ function generateSelectColumns(table) {
     return r;
 }
 
-function prepareArgument(value, defaultValue) {
-    if (value) {
-        if (typeof value === 'string') {
-            value = JSON.parse(value);
-        }
-    } else {
-        value = defaultValue;
+function defaultIfNone(value, defaultValue) {
+    if (value === undefined || value === null) {
+        return defaultValue;
     }
     return value;
 }
 
-function querySelect(req, res, select, froms, from, joins, where, orderBy) {
-    froms = prepareArgument(froms, []);
-    if (from) {
-        if (typeof from === 'string') {
-            try {
-                from = JSON.parse(from);
-            } catch (e) {
-                from = {tableName: from};
-            }
-        }
-        froms.push(from);
+function querySelect(req, res, query) {
+    if (typeof query === 'string') {
+        query = JSON.parse(query);
     }
-    joins = prepareArgument(joins, []);
-    joins.forEach(e => {
+    query.froms = defaultIfNone(query.froms, []);
+    if (query.from) {
+        if (typeof query.from === 'string') {
+            query.from = {tableName: query.from};
+        }
+        query.froms.push(query.from);
+        delete query.from;
+    }
+    query.joins = defaultIfNone(query.joins, []);
+    query.joins.forEach(e => {
         if (!e.on) {
             e.on = e.condition;
         }
@@ -58,34 +54,29 @@ function querySelect(req, res, select, froms, from, joins, where, orderBy) {
             e.joinType = e.joinType + ' JOIN';
         }
     });
-    if (where) {
-        where = util.wrapCurlyIfNeeded(where);
-        // console.log('select where input =' + where);
-        where = JSON.parse(where);
-    }
-
-    where = util.wrapToArray(where);
+    query.tables = query.froms.concat(query.joins);
+    query.where = util.wrapToArray(query.where);
 
     config.interceptors.preSelect.forEach(e => {
-        if (!e(req, froms, joins, where)) {
+        if (!e(req, query)) {
             res.status(500).send('not authorized');
             return;
         }
     });
 
-    if (select === undefined || select === null) {
-        if (!joins || !joins.length) {
-            select = '*';
+    if (query.select === undefined || query.select === null) {
+        if (query.tables.length <= 1) {
+            query.select = '*';
         } else {
-            select = '';
-            froms.forEach((v, i) => {
+            query.select = '';
+            query.froms.forEach((v, i) => {
                 if (i > 0) {
-                    select += ', ';
+                    query.select += ', ';
                 }
-                select += generateSelectColumns(v);
+                query.select += generateSelectColumns(v);
             })
-            joins.forEach(v => {
-                select += ', ' + generateSelectColumns(v);
+            query.joins.forEach(v => {
+                query.select += ', ' + generateSelectColumns(v);
             });
         }
     }
@@ -95,9 +86,9 @@ function querySelect(req, res, select, froms, from, joins, where, orderBy) {
     // console.log('select from ' + JSON.stringify(froms) + ' where=' + JSON.stringify(where) 
     //         );
 
-    var q = 'SELECT ' + select + ' ';
+    var q = 'SELECT ' + query.select + ' ';
     q += 'FROM ';
-    froms.forEach((v, i) => {
+    query.froms.forEach((v, i) => {
         if (i > 0) {
             q += ', ';
         }
@@ -105,21 +96,21 @@ function querySelect(req, res, select, froms, from, joins, where, orderBy) {
                 + (v.alias ? ' ' + config.propertyNameConverter.toDb(v.alias) : '');
     })
     q += ' ';
-    joins.forEach(e => {
+    query.joins.forEach(e => {
         // console.log('join ' + JSON.stringify(e) );
         q += e.joinType + ' ' 
                 + config.propertyNameConverter.toDb(e.tableName) 
                 + (e.alias ? ' ' + config.propertyNameConverter.toDb(e.alias) : '') 
                 + ' ON ' + conditionBuilder.build(e.on) + ' ';
     });
-    if (where) {
-        q += 'WHERE ' + conditionBuilder.build(where);
+    if (query.where) {
+        q += 'WHERE ' + conditionBuilder.build(query.where);
     }
     
     return db.promisedQuery(q, [])
         .then((rows)=>{
             var r = rows;
-            if ((froms.length + joins.length) > 1) {
+            if (query.tables.length > 1) {
                 r.forEach((row) => {
                     var columnNames = Object.getOwnPropertyNames(row);
                     columnNames.forEach((columnName) => {
@@ -130,7 +121,7 @@ function querySelect(req, res, select, froms, from, joins, where, orderBy) {
                             row[objectName] = {};
                         }
                         row[objectName][objectPropertyName] = util.checkNull(row[columnName]);
-                        row[columnName] = undefined;
+                        delete row[columnName];
                     })
                 });
             } else {
@@ -138,12 +129,12 @@ function querySelect(req, res, select, froms, from, joins, where, orderBy) {
                     var columnNames = Object.getOwnPropertyNames(row);
                     columnNames.forEach((columnName) => {
                         row[config.propertyNameConverter.toJs(columnName)] = util.checkNull(row[columnName]);
-                        row[columnName] = undefined;
+                        delete row[columnName];
                     })
                 });
             }
             config.interceptors.postSelect.forEach(e => {
-                r = e(req, froms, joins, r);
+                r = e(req, query, r);
             });
             res.send(r);
         })
@@ -154,13 +145,7 @@ function querySelect(req, res, select, froms, from, joins, where, orderBy) {
 };
 
 function selectRequest(req, res) {
-    var select = req.query.select;
-    var froms = req.query.froms;
-    var from = req.query.from;
-    var joins = req.query.joins;
-    var where = req.query.where;
-
-    return querySelect(req, res, select, froms, from, joins, where, null);
+    return querySelect(req, res, req.query.query);
 };
 
 

@@ -9,13 +9,14 @@ exports.wrapIdToObject = function(id) {
     return (id ? {id} : undefined);
 }
 
-exports.wrapCurlyIfNeeded = function(value) {
+function wrapCurlyIfNeeded(value) {
     value = value.trim();
-    if (!value.startsWith('{')) {
+    if (!value.startsWith('{') && !value.startsWith('[')) {
         value = '{' + value + '}';
     }
     return value;
 }
+exports.wrapCurlyIfNeeded = wrapCurlyIfNeeded;
 
 exports.wrapToArray = function(value) {
     var r = value;
@@ -26,6 +27,17 @@ exports.wrapToArray = function(value) {
         }
     }
     return r;
+}
+
+exports.readJsonParameter = function(value, defaultValue) {
+    if (value) {
+        if (typeof value === 'string') {
+            value = JSON.parse(wrapCurlyIfNeeded(value));
+        }
+    } else {
+        value = defaultValue;
+    }
+    return value;
 }
 
 exports.sendError = function(res, error) {

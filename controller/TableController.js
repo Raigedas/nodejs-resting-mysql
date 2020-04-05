@@ -9,11 +9,11 @@ const queryController = require('./QueryController');
 
 
 exports.select = function(req, res) {
-    const from = req.params.tableName;
-    const where = req.query.where;
-    const orderBy = req.query.orderBy;
-
-    return queryController.querySelect(req, res, null, null, from, null, where, orderBy);
+    const query = {};
+    query.from = req.params.tableName;
+    query.where = util.readJsonParameter(req.query.where, []);
+    query.orderBy = util.readJsonParameter(req.query.orderBy, []);
+    return queryController.querySelect(req, res, query);
 };
 
 exports.insert = function(req, res) {
