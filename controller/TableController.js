@@ -17,7 +17,7 @@ exports.select = function(req, res) {
 };
 
 exports.insert = function(req, res) {
-    commonController.insert(req, res, dao, rowToObject);
+    queryController.queryInsert(req, res, req.params.tableName, req.body);
 };
 
 exports.update = function(req, res) {

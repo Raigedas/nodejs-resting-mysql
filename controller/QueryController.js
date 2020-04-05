@@ -22,6 +22,30 @@ function generateSelectColumns(table) {
     return r;
 }
 
+function generateInsertColumns(entity) {
+    const propertyNames = Object.getOwnPropertyNames(entity);
+    var r = '';
+    propertyNames.forEach((v, i) => {
+        if (i > 0) {
+            r += ', ';
+        }
+        r += config.propertyNameConverter.toDb(v);
+    });
+    return r;
+}
+
+function generateInsertValues(entity) {
+    const propertyNames = Object.getOwnPropertyNames(entity);
+    var r = '';
+    propertyNames.forEach((v, i) => {
+        if (i > 0) {
+            r += ', ';
+        }
+        r += util.formatQueryValue(entity[v]);
+    });
+    return r;
+}
+
 function defaultIfNone(value, defaultValue) {
     if (value === undefined || value === null) {
         return defaultValue;
@@ -29,7 +53,46 @@ function defaultIfNone(value, defaultValue) {
     return value;
 }
 
-function querySelect(req, res, query) {
+function queryInsert(req, res, tableName, entity) {
+    config.interceptors.preInsert.forEach(e => {
+        if (!(entity = e(req, tableName, entity))) {
+            res.status(403).send('not authorized');
+            return;
+        }
+    });
+
+    var q = 'INSERT INTO ';
+    q += config.propertyNameConverter.toDb(tableName);
+    q += ' (';
+    q += generateInsertColumns(entity);
+    q += ') ';
+    q += ' VALUES(';
+    q += generateInsertValues(entity);
+    q += ') ';
+    console.log('doInsert ' + q +' ');
+    return db.promisedQuery(q)
+        .then((rows) => {
+            const pkColumns = tableDefinitions.getPkForTable(config.propertyNameConverter.toDb(tableName));
+            const selectQuery = {};
+            selectQuery.from = tableName;
+            selectQuery.where = [];
+            pkColumns.forEach(pkColumn => {
+                const condition = {};
+                const pkProperty = config.propertyNameConverter.toJs(pkColumn);
+                condition[pkProperty] = entity[pkProperty];
+                selectQuery.where.push(condition)
+            });
+
+            querySelect(req, res, selectQuery, false);
+        })
+        .catch((err)=>{
+            console.log(err);
+            res.status(500).send(err);
+        });
+}
+
+function querySelect(req, res, query, triggerPreSelectInterceptors = true) {
+    console.log('querySelect: ' + JSON.stringify(query) );
     if (typeof query === 'string') {
         query = JSON.parse(query);
     }
@@ -57,12 +120,14 @@ function querySelect(req, res, query) {
     query.tables = query.froms.concat(query.joins);
     query.where = util.wrapToArray(query.where);
 
-    config.interceptors.preSelect.forEach(e => {
-        if (!e(req, query)) {
-            res.status(500).send('not authorized');
-            return;
-        }
-    });
+    if (triggerPreSelectInterceptors) {
+        config.interceptors.preSelect.forEach(e => {
+            if (!e(req, query)) {
+                res.status(403).send('not authorized');
+                return;
+            }
+        });
+    }
 
     if (query.select === undefined || query.select === null) {
         if (query.tables.length <= 1) {
@@ -148,6 +213,8 @@ function selectRequest(req, res) {
     return querySelect(req, res, req.query.query);
 };
 
+
+exports.queryInsert = queryInsert;
 
 exports.querySelect = querySelect;
 

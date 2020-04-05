@@ -1,5 +1,6 @@
 'use strict';
 
+const mysql = require('mysql');
 
 exports.checkNull = function(value) {
     return (value === null ? undefined : value);
@@ -60,4 +61,17 @@ exports.convertObjectsStyle = function(subjects, propertyNameConverter) {
         r.push(this.convertObjectStyle(element, propertyNameConverter));
     });
     return r;
+}
+
+exports.formatQueryValue = function(value) {
+    if (value === undefined || value === null) {
+        return 'NULL';
+    }
+    if (typeof value === 'boolean') {
+        return value ? 1 : 0;
+    }
+    if (isNaN(value)) {
+        return mysql.escape(value);
+    }
+    return value;
 }

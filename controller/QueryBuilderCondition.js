@@ -26,16 +26,7 @@ function formatOperator(value, operand0, operand1) {
 }
 
 function formatPropertyValue(value) {
-    if (value === undefined || value === null) {
-        return 'NULL';
-    }
-    if (typeof value === 'boolean') {
-        return value ? 1 : 0;
-    }
-    if (isNaN(value)) {
-        return '\'' + value + '\''; // TODO: escape
-    }
-    return value;
+    return util.formatQueryValue(value)
 }
 
 function buildObject(buildContext, currentObject, logicalOperator) {

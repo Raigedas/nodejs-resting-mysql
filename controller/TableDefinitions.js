@@ -5,10 +5,11 @@ var Mysql = require('sync-mysql');
 const config = require('../Config');
 
 
-const data = {};
+const tableDefinitions = {};
+const tablePks = {};
 
 function fetchColumns(tableName) {
-    console.log('fetch table definition for: ' + tableName);
+    // console.log('fetch table definition for: ' + tableName);
     var connection = new Mysql(config.dbConnection);
     var rows = connection.query(`DESCRIBE ${tableName}`);
     var r = {};
@@ -23,9 +24,30 @@ function fetchColumns(tableName) {
     return r;
 }
 
-module.exports.getForTable = function(tableName) {
-    if (data[tableName] === undefined) {
-        data[tableName] = fetchColumns(tableName);
+function fetchPkForTable(tableName) {
+    const tableColumns = getForTable(tableName);
+    var r = [];
+    const propertyNames = Object.getOwnPropertyNames(tableColumns);
+    propertyNames.forEach(propertyName => {
+        if (tableColumns[propertyName].key === 'PRI') {
+            r.push(propertyName);
+        }
+    });
+    return r;
+}
+
+function getForTable(tableName) {
+    if (tableDefinitions[tableName] === undefined) {
+        tableDefinitions[tableName] = fetchColumns(tableName);
     }
-    return data[tableName];
+    return tableDefinitions[tableName];
 } 
+
+module.exports.getForTable = getForTable;
+
+module.exports.getPkForTable = function(tableName) {
+    if (tablePks[tableName] === undefined) {
+        tablePks[tableName] = fetchPkForTable(tableName);
+    }
+    return tablePks[tableName];
+}

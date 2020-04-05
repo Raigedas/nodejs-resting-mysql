@@ -13,5 +13,6 @@ config.propertyNameConverter = {
 config.interceptors = {};
 config.interceptors.preSelect = [];
 config.interceptors.postSelect = [];
+config.interceptors.preInsert = [];
 
 module.exports = config;
