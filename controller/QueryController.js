@@ -76,7 +76,6 @@ function defaultIfNone(value, defaultValue) {
 
 function generateConditionsForPk(tableName, entity) {
     const pkColumns = tableDefinitions.getPkForTable(config.propertyNameConverter.toDb(tableName));
-    const selectQuery = {};
     const r = [];
     pkColumns.forEach(pkColumn => {
         const condition = {};
