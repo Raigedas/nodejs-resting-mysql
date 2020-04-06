@@ -1,10 +1,8 @@
 'use strict';
 
 const config = require('./../Config');
-const conditionBuilder = require('./QueryBuilderCondition');
 const common = require('../Common');
 const util = require('../Util');
-const db = require('./../Db');
 const queryController = require('./QueryController');
 
 
@@ -25,9 +23,13 @@ exports.update = function(req, res) {
 };
 
 exports.delete = function(req, res) {
-    commonController.delete(req, res, dao);
-};
-
-exports.query = function(req, res) {
-    commonController.delete(req, res, dao);
+    var subject = req.params.id;
+    if (subject) {
+        subject = util.wrapCurlyIfNeeded(subject);
+        subject = JSON.parse(subject);
+    }
+    if (subject === undefined || subject === null || subject === '') {
+        subject = req.body;
+    }
+    queryController.queryDelete(req, res, req.params.tableName, subject);
 };

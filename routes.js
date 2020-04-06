@@ -25,6 +25,7 @@ module.exports = function(app) {
         .get(tableController.select)
         .post(tableController.insert)
         .put(tableController.update)
+        .delete(tableController.delete)
         ;
     app.route('/table/:tableName/:id')
         .delete(tableController.delete)

@@ -53,6 +53,19 @@ function defaultIfNone(value, defaultValue) {
     return value;
 }
 
+function generateConditionsForPk(tableName, entity) {
+    const pkColumns = tableDefinitions.getPkForTable(config.propertyNameConverter.toDb(tableName));
+    const selectQuery = {};
+    const r = [];
+    pkColumns.forEach(pkColumn => {
+        const condition = {};
+        const pkProperty = config.propertyNameConverter.toJs(pkColumn);
+        condition[pkProperty] = entity[pkProperty];
+        r.push(condition)
+    });
+    return r;
+}
+
 function queryInsert(req, res, tableName, entity) {
     config.interceptors.preInsert.forEach(e => {
         if (!(entity = e(req, tableName, entity))) {
@@ -72,18 +85,36 @@ function queryInsert(req, res, tableName, entity) {
     console.log('doInsert ' + q +' ');
     return db.promisedQuery(q)
         .then((rows) => {
-            const pkColumns = tableDefinitions.getPkForTable(config.propertyNameConverter.toDb(tableName));
             const selectQuery = {};
             selectQuery.from = tableName;
-            selectQuery.where = [];
-            pkColumns.forEach(pkColumn => {
-                const condition = {};
-                const pkProperty = config.propertyNameConverter.toJs(pkColumn);
-                condition[pkProperty] = entity[pkProperty];
-                selectQuery.where.push(condition)
-            });
-
+            selectQuery.where = generateConditionsForPk(tableName, entity);
             querySelect(req, res, selectQuery, false);
+        })
+        .catch((err)=>{
+            console.log(err);
+            res.status(500).send(err);
+        });
+}
+
+function queryDelete(req, res, tableName, entity) {
+    config.interceptors.preDelete.forEach(e => {
+        if (!(entity = e(req, tableName, entity))) {
+            res.status(403).send('not authorized');
+            return;
+        }
+    });
+
+    var where = generateConditionsForPk(tableName, entity);
+
+    var q = 'DELETE FROM ';
+    q += config.propertyNameConverter.toDb(tableName);
+    q += ' ';
+    q += 'WHERE ';
+    q += conditionBuilder.build(where);
+    console.log('queryDelete ' + q +' ');
+    return db.promisedQuery(q)
+        .then((rows) => {
+            res.status(200).send({deleted: rows.affectedRows});
         })
         .catch((err)=>{
             console.log(err);
@@ -215,6 +246,8 @@ function selectRequest(req, res) {
 
 
 exports.queryInsert = queryInsert;
+
+exports.queryDelete = queryDelete;
 
 exports.querySelect = querySelect;
 
