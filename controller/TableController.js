@@ -19,7 +19,7 @@ exports.insert = function(req, res) {
 };
 
 exports.update = function(req, res) {
-    commonController.updatePrimitives(req, res, dao);
+    queryController.queryUpdate(req, res, req.params.tableName, req.body);
 };
 
 exports.delete = function(req, res) {

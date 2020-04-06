@@ -31,7 +31,6 @@ module.exports = function(app) {
         .delete(tableController.delete)
         ;
 
-
     app.route('/query/select')
         .get(queryController.selectRequest)
         ;

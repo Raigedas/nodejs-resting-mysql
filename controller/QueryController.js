@@ -46,6 +46,27 @@ function generateInsertValues(entity) {
     return r;
 }
 
+function generateAssignments(tableName, entity) {
+    var columnNames = tableDefinitions.getColumnsForTable(config.propertyNameConverter.toDb(tableName));
+    const pkColumns = tableDefinitions.getPkForTable(config.propertyNameConverter.toDb(tableName));
+    columnNames = columnNames.filter(v => pkColumns.indexOf(v) < 0 );
+    
+    var r = '';
+    var i = 0;
+    columnNames.forEach((columnName) => {
+        const propertyValue = entity[config.propertyNameConverter.toJs(columnName)];
+        if (propertyValue === undefined) {
+            return;
+        }
+        if (i > 0) {
+            r += ', ';
+        }
+        r += columnName + ' = ' + util.formatQueryValue(propertyValue);
+        i++;
+    });
+    return r;
+}
+
 function defaultIfNone(value, defaultValue) {
     if (value === undefined || value === null) {
         return defaultValue;
@@ -115,6 +136,35 @@ function queryDelete(req, res, tableName, entity) {
     return db.promisedQuery(q)
         .then((rows) => {
             res.status(200).send({deleted: rows.affectedRows});
+        })
+        .catch((err)=>{
+            console.log(err);
+            res.status(500).send(err);
+        });
+}
+
+function queryUpdate(req, res, tableName, entity) {
+    config.interceptors.preUpdate.forEach(e => {
+        if (!(entity = e(req, tableName, entity))) {
+            res.status(403).send('not authorized');
+            return;
+        }
+    });
+
+    var where = generateConditionsForPk(tableName, entity);
+
+    var q = 'UPDATE ';
+    q += config.propertyNameConverter.toDb(tableName);
+    q += ' ';
+    q += 'SET ';
+    q += generateAssignments(tableName, entity);
+    q += ' ';
+    q += 'WHERE ';
+    q += conditionBuilder.build(where);
+    console.log('queryUpdate ' + q +' ');
+    return db.promisedQuery(q)
+        .then((rows) => {
+            res.status(200).send({updated: rows.affectedRows});
         })
         .catch((err)=>{
             console.log(err);
@@ -248,6 +298,8 @@ function selectRequest(req, res) {
 exports.queryInsert = queryInsert;
 
 exports.queryDelete = queryDelete;
+
+exports.queryUpdate = queryUpdate;
 
 exports.querySelect = querySelect;
 

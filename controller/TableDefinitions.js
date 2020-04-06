@@ -6,6 +6,7 @@ const config = require('../Config');
 
 
 const tableDefinitions = {};
+const tableColumns = {};
 const tablePks = {};
 
 function fetchColumns(tableName) {
@@ -36,6 +37,18 @@ function fetchPkForTable(tableName) {
     return r;
 }
 
+function fetchColumnsForTable(tableName) {
+    const tableColumns = getForTable(tableName);
+    var r = [];
+    const propertyNames = Object.getOwnPropertyNames(tableColumns);
+    propertyNames.forEach(propertyName => {
+        if (tableColumns[propertyName].key !== 'PRI') {
+            r.push(propertyName);
+        }
+    });
+    return r;
+}
+
 function getForTable(tableName) {
     if (tableDefinitions[tableName] === undefined) {
         tableDefinitions[tableName] = fetchColumns(tableName);
@@ -50,4 +63,11 @@ module.exports.getPkForTable = function(tableName) {
         tablePks[tableName] = fetchPkForTable(tableName);
     }
     return tablePks[tableName];
+}
+
+module.exports.getColumnsForTable = function(tableName) {
+    if (tableColumns[tableName] === undefined) {
+        tableColumns[tableName] = fetchColumnsForTable(tableName);
+    }
+    return tableColumns[tableName];
 }
