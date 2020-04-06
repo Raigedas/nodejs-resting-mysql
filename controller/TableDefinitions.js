@@ -42,9 +42,7 @@ function fetchColumnsForTable(tableName) {
     var r = [];
     const propertyNames = Object.getOwnPropertyNames(tableColumns);
     propertyNames.forEach(propertyName => {
-        if (tableColumns[propertyName].key !== 'PRI') {
-            r.push(propertyName);
-        }
+        r.push(propertyName);
     });
     return r;
 }

@@ -22,26 +22,40 @@ function generateSelectColumns(table) {
     return r;
 }
 
-function generateInsertColumns(entity) {
+function generateInsertColumns(tableName, entity) {
+    var tableColumnNames = tableDefinitions.getColumnsForTable(config.propertyNameConverter.toDb(tableName));
     const propertyNames = Object.getOwnPropertyNames(entity);
     var r = '';
-    propertyNames.forEach((v, i) => {
+    var i = 0;
+    propertyNames.forEach(v => {
+        const columnName = config.propertyNameConverter.toDb(v)
+        if (tableColumnNames.indexOf(columnName) < 0) {
+            return;
+        }
         if (i > 0) {
             r += ', ';
         }
-        r += config.propertyNameConverter.toDb(v);
+        r += columnName;
+        i++;
     });
     return r;
 }
 
-function generateInsertValues(entity) {
+function generateInsertValues(tableName, entity) {
+    var tableColumnNames = tableDefinitions.getColumnsForTable(config.propertyNameConverter.toDb(tableName));
     const propertyNames = Object.getOwnPropertyNames(entity);
     var r = '';
-    propertyNames.forEach((v, i) => {
+    var i = 0;
+    propertyNames.forEach(v => {
+        const columnName = config.propertyNameConverter.toDb(v)
+        if (tableColumnNames.indexOf(columnName) < 0) {
+            return;
+        }
         if (i > 0) {
             r += ', ';
         }
         r += util.formatQueryValue(entity[v]);
+        i++;
     });
     return r;
 }
@@ -97,10 +111,10 @@ function queryInsert(req, res, tableName, entity) {
     var q = 'INSERT INTO ';
     q += config.propertyNameConverter.toDb(tableName);
     q += ' (';
-    q += generateInsertColumns(entity);
+    q += generateInsertColumns(tableName, entity);
     q += ') ';
     q += ' VALUES(';
-    q += generateInsertValues(entity);
+    q += generateInsertValues(tableName, entity);
     q += ') ';
     console.log('doInsert ' + q +' ');
     return db.promisedQuery(q)
