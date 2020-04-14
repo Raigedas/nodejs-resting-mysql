@@ -1,12 +1,12 @@
 'use strict';
 
 
-module.exports.convertCamelToUpperCaseStyle = function(value) {
+function convertCamelToUpperCaseStyle(value) {
     value = value.replace(/([A-Z])/g, "_$1");
     return value.toUpperCase();
 }
 
-module.exports.convertUpperToCamelCaseStyle = function(value) {
+function convertUpperToCamelCaseStyle(value) {
     value = value.replace(/_/g, " ");
     value = value.toLowerCase();
 
@@ -14,4 +14,14 @@ module.exports.convertUpperToCamelCaseStyle = function(value) {
         return index === 0 ? word.toLowerCase() : word.toUpperCase();
     }).replace(/\s+/g, '');
     return value;
+}
+
+
+module.exports.convertCamelToUpperCaseStyle = convertCamelToUpperCaseStyle;
+
+module.exports.convertUpperToCamelCaseStyle = convertUpperToCamelCaseStyle;
+
+module.exports.convertRoutingApiToUpperCamelStyle = function(value) {
+    value = value.replace('-', '_');
+    return convertUpperToCamelCaseStyle(value);
 }
