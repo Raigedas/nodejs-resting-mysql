@@ -279,15 +279,12 @@ function querySelect(req, res, query, triggerPreSelectInterceptors = true, selec
             query.select = '*';
         } else {
             query.select = '';
-            query.froms.forEach((v, i) => {
+            query.tables.forEach((v, i) => {
                 if (i > 0) {
                     query.select += ', ';
                 }
                 query.select += generateSelectColumns(v);
             })
-            query.joins.forEach(v => {
-                query.select += ', ' + generateSelectColumns(v);
-            });
         }
         query.selectTableCount = query.tables.length;
     } else {
