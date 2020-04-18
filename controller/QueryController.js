@@ -309,42 +309,45 @@ function querySelect(req, res, query, triggerPreSelectInterceptors = true) {
         q += 'WHERE ' + conditionBuilder.build(query.where);
     }
     
-    db.promisedQuery(q, [])
-        .then((rows)=>{
-            var r = rows;
-            if (query.selectTableCount > 1) {
-                r.forEach((row) => {
-                    var columnNames = Object.getOwnPropertyNames(row);
-                    columnNames.forEach((columnName) => {
-                        const parts = columnName.split('.');
-                        const objectName = config.propertyNameConverter.toJs(parts[0]);
-                        const objectPropertyName = config.propertyNameConverter.toJs(parts[1]);
-                        if (row[objectName] === undefined) {
-                            row[objectName] = {};
-                        }
-                        row[objectName][objectPropertyName] = util.checkNull(row[columnName]);
-                        delete row[columnName];
-                    })
-                });
-            } else {
-                r.forEach((row) => {
-                    var columnNames = Object.getOwnPropertyNames(row);
-                    columnNames.forEach((columnName) => {
-                        row[config.propertyNameConverter.toJs(columnName)] = util.checkNull(row[columnName]);
-                        delete row[columnName];
-                    })
-                });
-            }
-            config.interceptors.postSelect.forEach(e => {
-                r = e(req, query, r);
-            });
-            res.send(r);
-        })
-        .catch((err)=>{
-            console.log(err);
-            res.status(500).send(err);
-        });
+    processSelectAsRowset(req, res, query, db.promisedQuery(q, []));
 };
+
+function processSelectAsRowset(req, res, query, queryPromise) {
+    queryPromise.then((rows)=>{
+        var r = rows;
+        if (query.selectTableCount > 1) {
+            r.forEach((row) => {
+                var columnNames = Object.getOwnPropertyNames(row);
+                columnNames.forEach((columnName) => {
+                    const parts = columnName.split('.');
+                    const objectName = config.propertyNameConverter.toJs(parts[0]);
+                    const objectPropertyName = config.propertyNameConverter.toJs(parts[1]);
+                    if (row[objectName] === undefined) {
+                        row[objectName] = {};
+                    }
+                    row[objectName][objectPropertyName] = util.checkNull(row[columnName]);
+                    delete row[columnName];
+                })
+            });
+        } else {
+            r.forEach((row) => {
+                var columnNames = Object.getOwnPropertyNames(row);
+                columnNames.forEach((columnName) => {
+                    row[config.propertyNameConverter.toJs(columnName)] = util.checkNull(row[columnName]);
+                    delete row[columnName];
+                })
+            });
+        }
+        config.interceptors.postSelect.forEach(e => {
+            r = e(req, query, r);
+        });
+        res.send(r);
+    })
+    .catch((err)=>{
+        console.log(err);
+        res.status(500).send(err);
+    });
+}
 
 function selectRequest(req, res) {
     querySelect(req, res, req.query.query);
