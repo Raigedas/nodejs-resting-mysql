@@ -309,7 +309,7 @@ function querySelect(req, res, query, triggerPreSelectInterceptors = true) {
         q += 'WHERE ' + conditionBuilder.build(query.where);
     }
     
-    return db.promisedQuery(q, [])
+    db.promisedQuery(q, [])
         .then((rows)=>{
             var r = rows;
             if (query.selectTableCount > 1) {
@@ -347,7 +347,7 @@ function querySelect(req, res, query, triggerPreSelectInterceptors = true) {
 };
 
 function selectRequest(req, res) {
-    return querySelect(req, res, req.query.query);
+    querySelect(req, res, req.query.query);
 };
 
 
