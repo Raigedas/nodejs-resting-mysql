@@ -26,7 +26,7 @@ function wrapAngleIfNeeded(value) {
     }
     return value;
 }
-exports.wrapCurlyIfNeeded = wrapAngleIfNeeded;
+exports.wrapAngleIfNeeded = wrapAngleIfNeeded;
 
 exports.wrapToArray = function(value) {
     var r = value;
