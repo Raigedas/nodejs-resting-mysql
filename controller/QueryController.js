@@ -1,11 +1,13 @@
 'use strict';
 
 const config = require('./../Config');
-const conditionBuilder = require('./QueryBuilderCondition');
+const queryConditionBuilder = require('./QueryBuilderCondition');
+const conditionBuilder = require('./ConditionBuilder');
 const common = require('../Common');
 const util = require('../Util');
 const db = require('./../Db');
 const tableDefinitions = require('./TableDefinitions');
+const stringUtils = require('../StringUtils');
 
 
 function generateSelectColumns(table) {
@@ -127,18 +129,6 @@ function defaultIfNone(value, defaultValue) {
     return value;
 }
 
-function generateConditionsForPk(tableName, entity) {
-    const pkColumns = tableDefinitions.getPkForTable(config.propertyNameConverter.toDb(tableName));
-    const r = [];
-    pkColumns.forEach(pkColumn => {
-        const condition = {};
-        const pkProperty = config.propertyNameConverter.toJs(pkColumn);
-        condition[pkProperty] = entity[pkProperty];
-        r.push(condition)
-    });
-    return r;
-}
-
 function queryInsert(req, res, tableName, entity) {
     config.interceptors.preInsert.forEach(e => {
         if (!(entity = e(req, tableName, entity))) {
@@ -160,7 +150,7 @@ function queryInsert(req, res, tableName, entity) {
         .then((rows) => {
             const selectQuery = {};
             selectQuery.from = tableName;
-            selectQuery.where = generateConditionsForPk(tableName, entity);
+            selectQuery.where = conditionBuilder.buildConditionForPk(tableName, entity);
             querySelect(req, res, selectQuery, false);
         })
         .catch((err)=>{
@@ -177,13 +167,13 @@ function queryDelete(req, res, tableName, entity) {
         }
     });
 
-    var where = generateConditionsForPk(tableName, entity);
+    var where = conditionBuilder.buildConditionForPk(tableName, entity);
 
     var q = 'DELETE FROM ';
     q += config.propertyNameConverter.toDb(tableName);
     q += ' ';
     q += 'WHERE ';
-    q += conditionBuilder.build(where);
+    q += queryConditionBuilder.build(where);
     console.log('queryDelete ' + q +' ');
     return db.promisedQuery(q)
         .then((rows) => {
@@ -203,7 +193,7 @@ function queryUpdate(req, res, tableName, entity) {
         }
     });
 
-    var where = generateConditionsForPk(tableName, entity);
+    var where = conditionBuilder.buildConditionForPk(tableName, entity);
 
     var q = 'UPDATE ';
     q += config.propertyNameConverter.toDb(tableName);
@@ -212,7 +202,7 @@ function queryUpdate(req, res, tableName, entity) {
     q += generateAssignments(tableName, entity);
     q += ' ';
     q += 'WHERE ';
-    q += conditionBuilder.build(where);
+    q += queryConditionBuilder.build(where);
     console.log('queryUpdate ' + q +' ');
     return db.promisedQuery(q)
         .then((rows) => {
@@ -224,7 +214,29 @@ function queryUpdate(req, res, tableName, entity) {
         });
 }
 
-function querySelect(req, res, query, triggerPreSelectInterceptors = true) {
+function querySelectSingle(req, res, tableName, entity, triggerPreSelectInterceptors = true, selectResultProcessor = processSelectResultAsRowset) {
+    config.interceptors.preSelectSingle.forEach(e => {
+        if (!(entity = e(req, tableName, entity))) {
+            res.status(403).send('not authorized');
+            return;
+        }
+    });
+
+    var where = conditionBuilder.buildConditionForPk(tableName, entity);
+
+    var q = 'SELECT * ';
+    q += 'FROM ';
+    q += config.propertyNameConverter.toDb(tableName);
+    q += ' ';
+    q += 'WHERE ';
+    q += queryConditionBuilder.build(where);
+
+    console.log('querySelectSingle ' + q +' ');
+
+    selectResultProcessor(req, res, null, db.promisedQuery(q, []));
+};
+
+function querySelect(req, res, query, triggerPreSelectInterceptors = true, selectResultProcessor = processSelectResultAsRowset) {
     console.log('querySelect: ' + JSON.stringify(query) );
     if (typeof query === 'string') {
         query = JSON.parse(query);
@@ -303,13 +315,13 @@ function querySelect(req, res, query, triggerPreSelectInterceptors = true) {
         q += e.joinType + ' ' 
                 + config.propertyNameConverter.toDb(e.tableName) 
                 + (e.alias ? ' ' + config.propertyNameConverter.toDb(e.alias) : '') 
-                + ' ON ' + conditionBuilder.build(e.on) + ' ';
+                + ' ON ' + queryConditionBuilder.build(e.on) + ' ';
     });
     if (query.where) {
-        q += 'WHERE ' + conditionBuilder.build(query.where);
+        q += 'WHERE ' + queryConditionBuilder.build(query.where);
     }
     
-    processSelectResultAsRowset(req, res, query, db.promisedQuery(q, []));
+    selectResultProcessor(req, res, query, db.promisedQuery(q, []));
 };
 
 function processSelectResultAsRowset(req, res, query, queryPromise) {
@@ -349,10 +361,42 @@ function processSelectResultAsRowset(req, res, query, queryPromise) {
     });
 }
 
+function processSelectResultAsBlob(req, res, query, queryPromise) {
+    queryPromise.then((rows)=>{
+        if (rows.length) {
+            const row = rows[0];
+            const columnName = config.propertyNameConverter.toDb(req.query.binaryProperty);
+            let contentType = req.query.contentType;
+            if (contentType === undefined) {
+                const contentTypeTemplate = req.query.contentTypeTemplate;
+                const dataTypePropery = req.query.dataTypePropery;
+                if (contentTypeTemplate !== undefined && dataTypePropery !== undefined) {
+                    const dataType = row[config.propertyNameConverter.toDb(dataTypePropery)];
+                    contentType = stringUtils.format(contentTypeTemplate, [dataType]);
+                }
+            }
+            if (contentType !== undefined) {
+                res.set('Content-Type', contentType);
+            }
+
+            // res.set('Content-Length', 'image/' + binaryData.readableLength);
+            res.send(row[columnName]);
+        } else {
+            res.status(404).send('no such record');
+        }
+    })
+    .catch((err)=>{
+        console.log(err);
+        res.status(500).send(err);
+    });
+}
+
 function selectRequest(req, res) {
     querySelect(req, res, req.query.query);
 };
 
+
+exports.processSelectResultAsBlob = processSelectResultAsBlob;
 
 exports.queryInsert = queryInsert;
 
@@ -363,6 +407,8 @@ exports.queryUpdate = queryUpdate;
 exports.querySelect = querySelect;
 
 exports.selectRequest = selectRequest;
+
+exports.querySelectSingle = querySelectSingle;
 
 
 exports.find = function(req, res) {

@@ -5,6 +5,7 @@ const cors = require('cors');
 module.exports = function(app) {
     var authController = require('./controller/AuthController');
     var tableController = require('./controller/TableController');
+    var blobController = require('./controller/BlobController');
     var queryController = require('./controller/QueryController');
 
     app.use(cors());
@@ -29,6 +30,14 @@ module.exports = function(app) {
         ;
     app.route('/table/:tableName/:id')
         .delete(tableController.delete)
+        ;
+
+    app.route('/blob/:tableName/:id')
+        .get(blobController.selectBlob)
+        ;
+
+    app.route('/image/:tableName/:id')
+        .get(blobController.selectImage)
         ;
 
     app.route('/query/select')

@@ -12,6 +12,7 @@ config.propertyNameConverter = {
 };
 config.interceptors = {};
 config.interceptors.preSelect = [];
+config.interceptors.preSelectSingle = [];
 config.interceptors.postSelect = [];
 config.interceptors.preInsert = [];
 config.interceptors.preDelete = [];

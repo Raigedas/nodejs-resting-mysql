@@ -25,3 +25,11 @@ module.exports.convertRoutingApiToUpperCamelStyle = function(value) {
     value = value.replace('-', '_');
     return convertUpperToCamelCaseStyle(value);
 }
+
+module.exports.format = function(template, parameters) {
+    var r = template;
+    for (let i in parameters) {
+      r = r.replace("{" + i + "}", parameters[i])
+    }
+    return r;
+}
