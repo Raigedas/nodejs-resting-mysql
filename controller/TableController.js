@@ -10,6 +10,7 @@ const stringUtils = require('../StringUtils');
 exports.select = function(req, res) {
     const query = {};
     query.from = stringUtils.convertRoutingApiToUpperCamelStyle(req.params.tableName);
+    query.excludes = util.readJsonParameterArray(req.query.excludes);
     query.where = util.readJsonParameter(req.query.where, []);
     query.orderBy = util.readJsonParameter(req.query.orderBy, []);
     return queryController.querySelect(req, res, query);

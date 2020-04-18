@@ -11,15 +11,26 @@ const stringUtils = require('../StringUtils');
 
 
 function generateSelectColumns(table) {
-    var alias = config.propertyNameConverter.toDb(table.alias);
+    var alias = table.alias !== undefined && table.alias !== '' ? config.propertyNameConverter.toDb(table.alias) : undefined;
     var columnDefinitions = tableDefinitions.getForTable(config.propertyNameConverter.toDb(table.tableName));
     var columnNames = Object.getOwnPropertyNames(columnDefinitions);
+    let columnExcludes = [];
+    if (table.excludes) {
+        columnExcludes = table.excludes.map(i => config.propertyNameConverter.toDb(i));
+    }
     var r = '';
-    columnNames.forEach((v, i) => {
-        if (i > 0) {
+    columnNames.forEach((columnName) => {
+        if (columnExcludes.includes(columnName)) {
+            return;
+        }
+        if (r !== '') {
             r += ', ';
         }
-        r += alias + '.' + v + ' AS ' + "'" + alias + '.' + v + "'";
+        if (alias !== undefined) {
+            r += alias + '.' + columnName + ' AS ' + "'" + alias + '.' + columnName + "'";
+        } else {
+            r += columnName;
+        }
     });
     return r;
 }
@@ -246,6 +257,9 @@ function querySelect(req, res, query, triggerPreSelectInterceptors = true, selec
         if (typeof query.from === 'string') {
             query.from = {tableName: query.from};
         }
+        if (query.excludes !== undefined) {
+            query.from.excludes = query.excludes;
+        }
         query.froms.push(query.from);
         delete query.from;
     }
@@ -275,7 +289,7 @@ function querySelect(req, res, query, triggerPreSelectInterceptors = true, selec
     }
 
     if (query.select === undefined || query.select === null) {
-        if (query.tables.length <= 1) {
+        if (query.tables.length <= 1 && (query.tables[0].excludes === undefined || !query.tables[0].excludes.length)) {
             query.select = '*';
         } else {
             query.select = '';

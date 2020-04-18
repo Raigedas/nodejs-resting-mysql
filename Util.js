@@ -19,6 +19,15 @@ function wrapCurlyIfNeeded(value) {
 }
 exports.wrapCurlyIfNeeded = wrapCurlyIfNeeded;
 
+function wrapAngleIfNeeded(value) {
+    value = value.trim();
+    if (!value.startsWith('[')) {
+        value = '[' + value + ']';
+    }
+    return value;
+}
+exports.wrapCurlyIfNeeded = wrapAngleIfNeeded;
+
 exports.wrapToArray = function(value) {
     var r = value;
     if (!Array.isArray(value)) {
@@ -37,6 +46,17 @@ exports.readJsonParameter = function(value, defaultValue) {
         }
     } else {
         value = defaultValue;
+    }
+    return value;
+}
+
+exports.readJsonParameterArray = function(value) {
+    if (value) {
+        if (typeof value === 'string') {
+            value = JSON.parse(wrapAngleIfNeeded(value));
+        }
+    } else {
+        value = [];
     }
     return value;
 }
