@@ -309,10 +309,10 @@ function querySelect(req, res, query, triggerPreSelectInterceptors = true) {
         q += 'WHERE ' + conditionBuilder.build(query.where);
     }
     
-    processSelectAsRowset(req, res, query, db.promisedQuery(q, []));
+    processSelectResultAsRowset(req, res, query, db.promisedQuery(q, []));
 };
 
-function processSelectAsRowset(req, res, query, queryPromise) {
+function processSelectResultAsRowset(req, res, query, queryPromise) {
     queryPromise.then((rows)=>{
         var r = rows;
         if (query.selectTableCount > 1) {
