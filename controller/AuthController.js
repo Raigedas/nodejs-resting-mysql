@@ -26,19 +26,21 @@ function verifyJwt(token, done) {
 exports.auth = function(req, res, next) {
     if (req.path === '/' || req.path === '/login') return next();
 
-    const authHeader = req.headers.authorization;
-    if (authHeader === undefined) {
+    let token;
+
+    if (req.headers.authorization !== undefined) {
+        const authHeaderParts = req.headers.authorization.split(" ");
+        if (!authHeaderParts || authHeaderParts.length < 1) {
+            res.status(401).send('bad authentication data');
+            return;
+        }
+        token = authHeaderParts[1];
+    } else if (req.query.jwt !== undefined) {
+        token = req.query.jwt;
+    } else {
         res.status(401).send('please authenticate');
         return;
     }
-
-    const authHeaderParts = authHeader.split(" ");
-    if (!authHeaderParts || authHeaderParts.length < 1) {
-        res.status(401).send('bad authentication data');
-        return;
-    }
-
-    const token = authHeaderParts[1];
 
     verifyJwt(token, function(error, result) {
         if (error) {
