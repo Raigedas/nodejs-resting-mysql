@@ -22,6 +22,45 @@ function generateSelectColumns(table) {
     return r;
 }
 
+function convertNamesForSelectColumns(query) {
+    const elements = query.select.split(',');
+    const table = query.froms[0];
+    let r = '';
+    elements.forEach((element,i) => {
+        if (i > 0) {
+            r += ', ';
+        }
+        const parts = element.split('.');
+        if (parts.length > 1) {
+            const columnName = config.propertyNameConverter.toDb(parts[1]);
+            const tableName = query.tables.find(i => i.alias === parts[0]).tableName;
+            var columnDefinitions = tableDefinitions.getForTable(config.propertyNameConverter.toDb(tableName));
+            r += config.propertyNameConverter.toDb(parts[0]) + '.';
+            r += columnDefinitions[columnName] !== undefined ? columnName : parts[1];
+        } else {
+            const columnName = config.propertyNameConverter.toDb(parts[0]);
+            var columnDefinitions = tableDefinitions.getForTable(config.propertyNameConverter.toDb(table.tableName));
+            r += columnDefinitions[columnName] !== undefined ? columnName : parts[0];
+        }
+    });
+    return r;
+}
+
+function countSelectTables(select) {
+    const elements = select.split(',');
+    const r = {};
+    elements.forEach(element => {
+        const parts = element.split('.');
+        const tableName = parts.length > 1 ? parts[0] : '_default_';
+        if (r[tableName]) {
+            r[tableName]++;
+        } else {
+            r[tableName] = 1;
+        }
+    });
+    return Object.getOwnPropertyNames(r).length;
+}
+
 function generateInsertColumns(tableName, entity) {
     var tableColumnNames = tableDefinitions.getColumnsForTable(config.propertyNameConverter.toDb(tableName));
     const propertyNames = Object.getOwnPropertyNames(entity);
@@ -238,6 +277,10 @@ function querySelect(req, res, query, triggerPreSelectInterceptors = true) {
                 query.select += ', ' + generateSelectColumns(v);
             });
         }
+        query.selectTableCount = query.tables.length;
+    } else {
+        query.selectTableCount = countSelectTables(query.select);
+        query.select = convertNamesForSelectColumns(query);
     }
 
     // console.log('columns ' + JSON.stringify(tableColumns.getForTable(config.propertyNameConverter.toDb(from.tableName))) );
@@ -269,7 +312,7 @@ function querySelect(req, res, query, triggerPreSelectInterceptors = true) {
     return db.promisedQuery(q, [])
         .then((rows)=>{
             var r = rows;
-            if (query.tables.length > 1) {
+            if (query.selectTableCount > 1) {
                 r.forEach((row) => {
                     var columnNames = Object.getOwnPropertyNames(row);
                     columnNames.forEach((columnName) => {
