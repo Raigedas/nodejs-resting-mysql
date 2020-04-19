@@ -81,7 +81,7 @@ function generateInsertColumns(tableName, entity) {
     var i = 0;
     propertyNames.forEach(v => {
         const columnName = config.propertyNameConverter.toDb(v)
-        if (tableColumnNames.indexOf(columnName) < 0) {
+        if (!tableColumnNames.includes(columnName)) {
             return;
         }
         if (i > 0) {
