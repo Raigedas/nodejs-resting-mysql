@@ -6,6 +6,8 @@ const util = require('../Util');
 const queryController = require('./QueryController');
 const stringUtils = require('../StringUtils');
 
+const PayloadEntityHeaderName = 'payload-entity';
+
 
 exports.select = function(req, res) {
     const query = {};
@@ -17,7 +19,20 @@ exports.select = function(req, res) {
 };
 
 exports.insert = function(req, res) {
-    queryController.queryInsert(req, res, stringUtils.convertRoutingApiToUpperCamelStyle(req.params.tableName), req.body);
+    let entity = undefined;
+    if ((entity = req.query.entity) !== undefined) {
+        entity = util.readJsonParameter(entity, {});
+    } else if ((entity = req.headers[PayloadEntityHeaderName]) !== undefined) {
+        entity = util.readJsonParameter(entity, {});
+    } else {
+        entity = req.body;
+    }
+    const tableName = stringUtils.convertRoutingApiToUpperCamelStyle(req.params.tableName);
+    const blobProperty = req.query.blobProperty;
+    if (blobProperty !== undefined) {
+        entity[blobProperty] = req.body;
+    }
+    queryController.queryInsert(req, res, tableName, entity, blobProperty);
 };
 
 exports.update = function(req, res) {

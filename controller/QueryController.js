@@ -74,40 +74,54 @@ function countSelectTables(select) {
     return Object.getOwnPropertyNames(r).length;
 }
 
-function generateInsertColumns(tableName, entity) {
+function removeExtraPropertys(tableName, entity) {
     var tableColumnNames = tableDefinitions.getColumnsForTable(config.propertyNameConverter.toDb(tableName));
     const propertyNames = Object.getOwnPropertyNames(entity);
-    var r = '';
-    var i = 0;
     propertyNames.forEach(v => {
-        const columnName = config.propertyNameConverter.toDb(v)
+        const columnName = config.propertyNameConverter.toDb(v);
         if (!tableColumnNames.includes(columnName)) {
-            return;
+            delete entity[v];
         }
-        if (i > 0) {
-            r += ', ';
-        }
-        r += columnName;
-        i++;
+    });
+}
+
+function findInsertColumns(tableName, entity) {
+    const propertyNames = Object.getOwnPropertyNames(entity);
+    var r = [];
+    propertyNames.forEach(v => {
+        const columnName = config.propertyNameConverter.toDb(v);
+        r.push(columnName);
     });
     return r;
 }
 
-function generateInsertValues(tableName, entity) {
-    var tableColumnNames = tableDefinitions.getColumnsForTable(config.propertyNameConverter.toDb(tableName));
-    const propertyNames = Object.getOwnPropertyNames(entity);
+function generateInsertColumns(columnNames) {
     var r = '';
-    var i = 0;
-    propertyNames.forEach(v => {
-        const columnName = config.propertyNameConverter.toDb(v)
-        if (tableColumnNames.indexOf(columnName) < 0) {
-            return;
-        }
-        if (i > 0) {
+    columnNames.forEach(columnName => {
+        if (r !== '') {
             r += ', ';
         }
-        r += util.formatQueryValue(entity[v]);
-        i++;
+        r += columnName;
+    });
+    return r;
+}
+
+function generateInsertPlaceHolders(columnNames) {
+    var r = '';
+    columnNames.forEach(columnName => {
+        if (r !== '') {
+            r += ', ';
+        }
+        r += '?';
+    });
+    return r;
+}
+
+function generateInsertValuesArray(entity) {
+    const propertyNames = Object.getOwnPropertyNames(entity);
+    var r = [];
+    propertyNames.forEach(v => {
+        r.push(entity[v]);
     });
     return r;
 }
@@ -140,27 +154,52 @@ function defaultIfNone(value, defaultValue) {
     return value;
 }
 
-function queryInsert(req, res, tableName, entity) {
+function queryInsert(req, res, tableName, entity, blobProperty) {
+    if (blobProperty === null) {
+        blobProperty = undefined;
+    }
     config.interceptors.preInsert.forEach(e => {
-        if (!(entity = e(req, tableName, entity))) {
+        if (!(entity = e(req, tableName, entity, blobProperty))) {
             res.status(403).send('not authorized');
             return;
         }
     });
+    let blobColumn = undefined;
+    let blob = undefined;
+    if (blobProperty !== undefined) {
+        blobColumn = config.propertyNameConverter.toDb(blobProperty);
+        blob = entity[blobProperty];
+        delete entity[blobProperty];
+    }
+    removeExtraPropertys(tableName, entity);
+    const columnNames = findInsertColumns(tableName, entity);
+    if (blob !== undefined) {
+        columnNames.push(config.propertyNameConverter.toDb(blobProperty));
+    }
 
     var q = 'INSERT INTO ';
     q += config.propertyNameConverter.toDb(tableName);
     q += ' (';
-    q += generateInsertColumns(tableName, entity);
+    q += generateInsertColumns(columnNames);
     q += ') ';
     q += ' VALUES(';
-    q += generateInsertValues(tableName, entity);
+    q += generateInsertPlaceHolders(columnNames);
     q += ') ';
-    console.log('doInsert ' + q +' ');
-    return db.promisedQuery(q)
+
+    const insertValues = generateInsertValuesArray(entity);
+    if (blob !== undefined) {
+        insertValues.push(blob);
+    }
+
+    console.log('doInsert ' + q +' , ' + insertValues.length + ' value(s)');
+
+    return db.promisedQuery(q, insertValues)
         .then((rows) => {
             const selectQuery = {};
-            selectQuery.from = tableName;
+            selectQuery.from = {tableName};
+            if (blobProperty !== undefined) {
+                selectQuery.from.excludes = [blobProperty];
+            }
             selectQuery.where = conditionBuilder.buildConditionForPk(tableName, entity);
             querySelect(req, res, selectQuery, false);
         })
@@ -376,7 +415,7 @@ function processSelectResultAsBlob(req, res, query, queryPromise) {
     queryPromise.then((rows)=>{
         if (rows.length) {
             const row = rows[0];
-            const columnName = config.propertyNameConverter.toDb(req.query.binaryProperty);
+            const columnName = config.propertyNameConverter.toDb(req.query.blobProperty);
             let contentType = req.query.contentType;
             if (contentType === undefined) {
                 const contentTypeTemplate = req.query.contentTypeTemplate;
