@@ -22,7 +22,7 @@ module.exports.convertCamelToUpperCaseStyle = convertCamelToUpperCaseStyle;
 module.exports.convertUpperToCamelCaseStyle = convertUpperToCamelCaseStyle;
 
 module.exports.convertRoutingApiToUpperCamelStyle = function(value) {
-    value = value.replace('-', '_');
+    value = value.replace(/-/g, ' ');
     return convertUpperToCamelCaseStyle(value);
 }
 
