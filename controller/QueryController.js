@@ -397,11 +397,16 @@ function processSelectResultAsRowset(req, res, query, queryPromise) {
                         row[objectName] = {};
                         objectNames.push(objectName);
                     }
-                    row[objectName][objectPropertyName] = util.checkNull(row[columnName]);
+                    const objectPropertyValue = util.checkNull(row[columnName]);
+                    if (objectPropertyValue !== undefined) {
+                        row[objectName][objectPropertyName] = objectPropertyValue;
+                    }
                     delete row[columnName];
                 });
                 objectNames.forEach(i => {
+                    console.log(' is ' + i + ' object empty?');
                     if (Object.keys(row[i]).length === 0 && row[i].constructor === Object) {
+                        console.log(' is ' + i + ' object empty!');
                         delete row[i];
                     }
                 });
