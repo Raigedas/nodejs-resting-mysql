@@ -388,16 +388,23 @@ function processSelectResultAsRowset(req, res, query, queryPromise) {
         if (query.selectTableCount > 1) {
             r.forEach((row) => {
                 var columnNames = Object.getOwnPropertyNames(row);
+                const objectNames = [];
                 columnNames.forEach((columnName) => {
                     const parts = columnName.split('.');
                     const objectName = config.propertyNameConverter.toJs(parts[0]);
                     const objectPropertyName = config.propertyNameConverter.toJs(parts[1]);
                     if (row[objectName] === undefined) {
                         row[objectName] = {};
+                        objectNames.push(objectName);
                     }
                     row[objectName][objectPropertyName] = util.checkNull(row[columnName]);
                     delete row[columnName];
-                })
+                });
+                objectNames.forEach(i => {
+                    if (Object.keys(row[i]).length === 0 && row[i].constructor === Object) {
+                        delete row[i];
+                    }
+                });
             });
         } else {
             r.forEach((row) => {
