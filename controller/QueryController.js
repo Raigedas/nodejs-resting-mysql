@@ -404,9 +404,7 @@ function processSelectResultAsRowset(req, res, query, queryPromise) {
                     delete row[columnName];
                 });
                 objectNames.forEach(i => {
-                    console.log(' is ' + i + ' object empty?');
                     if (Object.keys(row[i]).length === 0 && row[i].constructor === Object) {
-                        console.log(' is ' + i + ' object empty!');
                         delete row[i];
                     }
                 });
