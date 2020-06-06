@@ -6,7 +6,7 @@ const config = require('./Config');
 const common = require('./Common');
 
 function start() {
-    const port = config.port || process.env.PORT || 3002;
+    const port = config.port || process.env.PORT || 3000;
     app.listen(port, '0.0.0.0');
 
     console.log('Server started on: ' + port);
