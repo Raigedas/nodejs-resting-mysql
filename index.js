@@ -1,12 +1,12 @@
 const express = require('express'),
     app = express(),
     bodyParser = require('body-parser');
-    port = process.env.PORT || 3002;
-
+    
 const config = require('./Config');
 const common = require('./Common');
 
 function start() {
+    const port = config.port || process.env.PORT || 3002;
     app.listen(port, '0.0.0.0');
 
     console.log('Server started on: ' + port);
