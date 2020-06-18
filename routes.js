@@ -32,16 +32,16 @@ module.exports = function(app) {
         .delete(tableController.delete)
         ;
 
+    app.route('/query/select')
+        .get(queryController.selectRequest)
+        ;
+
     app.route('/blob/:tableName/:id')
         .get(blobController.selectBlob)
         ;
 
     app.route('/image/:tableName/:id')
         .get(blobController.selectImage)
-        ;
-
-    app.route('/query/select')
-        .get(queryController.selectRequest)
         ;
 
 };
