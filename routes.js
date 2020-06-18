@@ -36,11 +36,11 @@ module.exports = function(app) {
         .get(queryController.selectRequest)
         ;
 
-    app.route('/blob/:tableName/:id')
+    app.route('/table-blob/:tableName/:id')
         .get(blobController.selectBlob)
         ;
 
-    app.route('/image/:tableName/:id')
+    app.route('/table-image/:tableName/:id')
         .get(blobController.selectImage)
         ;
 
