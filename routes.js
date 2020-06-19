@@ -37,10 +37,18 @@ module.exports = function(app) {
         ;
 
     app.route('/table-blob/:tableName/:id')
-        .get(blobController.selectBlob)
+        .get(blobController.selectBlobById)
         ;
 
     app.route('/table-image/:tableName/:id')
+        .get(blobController.selectImageById)
+        ;
+
+    app.route('/query-blob/:tableName')
+        .get(blobController.selectBlob)
+        ;
+
+    app.route('/query-image/:tableName')
         .get(blobController.selectImage)
         ;
 
