@@ -3,7 +3,7 @@
 var mysql = require('mysql');
 
 const config = require('./Config');
-
+// console.log('cfg: ' + JSON.stringify(config));
 var pool = mysql.createPool(config.dbConnection);
 
 
