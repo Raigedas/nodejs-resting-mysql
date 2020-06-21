@@ -18,7 +18,7 @@ function formatOperator(value, operand0, operand1) {
         case 'lte': return '<=';
         case 'gt': return '>';
         case 'gte': return '>=';
-        case 'ne': return isNullOperand ? 'IS NOT' : '=';
+        case 'ne': return isNullOperand ? 'IS NOT' : '!=';
         case 'like': return value.toUpperCase();
         case 'column': return '';
         default: throw new Error('unknow operator ' + value);
