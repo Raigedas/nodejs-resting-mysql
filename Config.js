@@ -15,6 +15,7 @@ config.interceptors.preSelect = [];
 config.interceptors.preSelectSingle = [];
 config.interceptors.postSelect = [];
 config.interceptors.preInsert = [];
+config.interceptors.postInsert = [];
 config.interceptors.preDelete = [];
 config.interceptors.preUpdate = [];
 
